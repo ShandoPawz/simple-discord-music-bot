@@ -118,7 +118,7 @@ class GuildPlayer {
 
     for (const track of tracks) {
       const youtube = await searchYouTube(
-        `${track.title} ${track.artist} official audio`
+        `${track.artist} - ${track.title}`
       );
 
       const resolvedTrack = {
