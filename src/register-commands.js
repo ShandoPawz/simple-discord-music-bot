@@ -19,8 +19,51 @@ const commands = [
     .addStringOption((option) =>
       option
         .setName("query")
-        .setDescription("YouTube URL/search or Spotify track/playlist/album URL")
+        .setDescription(
+          "YouTube URL/search or Spotify track/playlist/album URL"
+        )
         .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName("queue")
+    .setDescription("Show the current queue"),
+
+  new SlashCommandBuilder()
+    .setName("remove")
+    .setDescription("Remove a track from the queue")
+    .addIntegerOption((option) =>
+      option
+        .setName("position")
+        .setDescription("Position of the track in the queue")
+        .setRequired(true)
+        .setMinValue(1)
+    ),
+
+  new SlashCommandBuilder()
+    .setName("clear")
+    .setDescription("Clear all queued tracks"),
+
+  new SlashCommandBuilder()
+    .setName("shuffle")
+    .setDescription("Shuffle the current queue"),
+
+  new SlashCommandBuilder()
+    .setName("move")
+    .setDescription("Move a track to another queue position")
+    .addIntegerOption((option) =>
+      option
+        .setName("from")
+        .setDescription("Current queue position")
+        .setRequired(true)
+        .setMinValue(1)
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName("to")
+        .setDescription("New queue position")
+        .setRequired(true)
+        .setMinValue(1)
     ),
 
   new SlashCommandBuilder()
@@ -38,10 +81,6 @@ const commands = [
   new SlashCommandBuilder()
     .setName("resume")
     .setDescription("Resume playback"),
-
-  new SlashCommandBuilder()
-    .setName("queue")
-    .setDescription("Show the current queue"),
 
   new SlashCommandBuilder()
     .setName("nowplaying")

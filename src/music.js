@@ -17,6 +17,7 @@ const {
 class GuildPlayer {
   constructor(guild) {
     this.guild = guild;
+
     this.queue = [];
     this.current = null;
     this.connection = null;
@@ -30,6 +31,7 @@ class GuildPlayer {
 
     this.player.on(AudioPlayerStatus.Idle, () => {
       this.cleanupProcess();
+
       this.playNext().catch((error) => {
         console.error(`[${guild.id}] playNext:`, error);
       });
@@ -37,7 +39,9 @@ class GuildPlayer {
 
     this.player.on("error", (error) => {
       console.error(`[${guild.id}] audio player error:`, error);
+
       this.cleanupProcess();
+
       this.playNext().catch((nextError) => {
         console.error(`[${guild.id}] recovery:`, nextError);
       });
@@ -46,10 +50,13 @@ class GuildPlayer {
 
   async connect(channel) {
     if (this.connection) {
-      const existingChannelId = this.connection.joinConfig.channelId;
+      const existingChannelId =
+        this.connection.joinConfig.channelId;
 
       if (existingChannelId !== channel.id) {
-        throw new Error("I am already connected to another voice channel.");
+        throw new Error(
+          "I am already connected to another voice channel."
+        );
       }
 
       return;
@@ -63,7 +70,10 @@ class GuildPlayer {
     });
 
     this.connection.on("error", (error) => {
-      console.error(`[${this.guild.id}] voice connection error:`, error);
+      console.error(
+        `[${this.guild.id}] voice connection error:`,
+        error
+      );
     });
 
     this.connection.subscribe(this.player);
@@ -76,11 +86,17 @@ class GuildPlayer {
   }
 
   async addTracks(tracks) {
+    if (!Array.isArray(tracks) || !tracks.length) {
+      return [];
+    }
+
     this.queue.push(...tracks);
 
     if (!this.current) {
       await this.playNext();
     }
+
+    return tracks;
   }
 
   async addQuery(query) {
@@ -93,6 +109,7 @@ class GuildPlayer {
     };
 
     await this.addTracks([track]);
+
     return track;
   }
 
@@ -116,11 +133,16 @@ class GuildPlayer {
       resolved.push(resolvedTrack);
 
       if (typeof onResolved === "function") {
-        await onResolved(resolvedTrack, resolved.length, tracks.length);
+        await onResolved(
+          resolvedTrack,
+          resolved.length,
+          tracks.length
+        );
       }
     }
 
     await this.addTracks(resolved);
+
     return resolved;
   }
 
@@ -134,14 +156,19 @@ class GuildPlayer {
     this.current = this.queue.shift();
 
     const process = createAudioProcess(this.current.url);
+
     this.currentProcess = process;
 
     let stderr = "";
 
     process.stderr.setEncoding("utf8");
+
     process.stderr.on("data", (data) => {
       stderr += data;
-      if (stderr.length > 4000) stderr = stderr.slice(-4000);
+
+      if (stderr.length > 4000) {
+        stderr = stderr.slice(-4000);
+      }
     });
 
     process.on("error", (error) => {
@@ -149,7 +176,11 @@ class GuildPlayer {
         `[${this.guild.id}] yt-dlp process error:`,
         error
       );
-      if (this.player.state.status !== AudioPlayerStatus.Idle) {
+
+      if (
+        this.player.state.status !==
+        AudioPlayerStatus.Idle
+      ) {
         this.player.stop(true);
       }
     });
@@ -157,20 +188,99 @@ class GuildPlayer {
     process.on("close", (code) => {
       if (code !== 0) {
         console.error(
-          `[${this.guild.id}] yt-dlp exited ${code}: ${stderr.trim()}`
+          `[${this.guild.id}] yt-dlp exited ${code}: ${
+            stderr.trim() || "unknown error"
+          }`
         );
       }
     });
 
-    const resource = createAudioResource(process.stdout, {
-      inputType: StreamType.Arbitrary,
-      inlineVolume: true,
-      metadata: this.current,
-    });
+    const resource = createAudioResource(
+      process.stdout,
+      {
+        inputType: StreamType.Arbitrary,
+        inlineVolume: true,
+        metadata: this.current,
+      }
+    );
 
     resource.volume.setVolume(1);
 
     this.player.play(resource);
+  }
+
+  getQueue() {
+    return this.queue;
+  }
+
+  getCurrent() {
+    return this.current;
+  }
+
+  remove(position) {
+    const index = position - 1;
+
+    if (index < 0 || index >= this.queue.length) {
+      return null;
+    }
+
+    return this.queue.splice(index, 1)[0];
+  }
+
+  clearQueue() {
+    const count = this.queue.length;
+
+    this.queue.length = 0;
+
+    return count;
+  }
+
+  shuffle() {
+    for (
+      let i = this.queue.length - 1;
+      i > 0;
+      i--
+    ) {
+      const j = Math.floor(Math.random() * (i + 1));
+
+      [
+        this.queue[i],
+        this.queue[j],
+      ] = [
+        this.queue[j],
+        this.queue[i],
+      ];
+    }
+
+    return this.queue;
+  }
+
+  move(from, to) {
+    const fromIndex = from - 1;
+    const toIndex = to - 1;
+
+    if (
+      fromIndex < 0 ||
+      fromIndex >= this.queue.length
+    ) {
+      return null;
+    }
+
+    if (
+      toIndex < 0 ||
+      toIndex >= this.queue.length
+    ) {
+      return null;
+    }
+
+    const [track] = this.queue.splice(
+      fromIndex,
+      1
+    );
+
+    this.queue.splice(toIndex, 0, track);
+
+    return track;
   }
 
   cleanupProcess() {
@@ -190,13 +300,17 @@ class GuildPlayer {
 
   skip() {
     this.killCurrentProcess();
+
     return this.player.stop(true);
   }
 
   stop() {
     this.queue.length = 0;
+
     this.killCurrentProcess();
+
     this.current = null;
+
     this.player.stop(true);
   }
 
@@ -210,7 +324,9 @@ class GuildPlayer {
   }
 
   killCurrentProcess() {
-    if (!this.currentProcess) return;
+    if (!this.currentProcess) {
+      return;
+    }
 
     this.currentProcess.kill("SIGTERM");
     this.currentProcess = null;
@@ -220,7 +336,9 @@ class GuildPlayer {
     const resource = this.player.state.resource;
 
     if (!resource?.volume) {
-      throw new Error("There is no active audio resource.");
+      throw new Error(
+        "There is no active audio resource."
+      );
     }
 
     resource.volume.setVolume(
