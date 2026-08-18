@@ -9,14 +9,24 @@ RUN apt-get update \
        python3 \
        ca-certificates \
        curl \
+       unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Always install a current yt-dlp release at image build time.
+# Install current yt-dlp
 RUN curl -fsSL \
       https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
       -o /usr/local/bin/yt-dlp \
     && chmod 0755 /usr/local/bin/yt-dlp \
     && /usr/local/bin/yt-dlp --version
+
+# Install bgutil PO-token provider plugin
+RUN mkdir -p /usr/local/bin/yt-dlp-plugins/bgutil-ytdlp-pot-provider \
+    && curl -fsSL \
+      https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/download/1.3.1/bgutil-ytdlp-pot-provider.zip \
+      -o /tmp/bgutil.zip \
+    && unzip -q /tmp/bgutil.zip \
+      -d /usr/local/bin/yt-dlp-plugins/bgutil-ytdlp-pot-provider \
+    && rm -f /tmp/bgutil.zip
 
 WORKDIR /app
 

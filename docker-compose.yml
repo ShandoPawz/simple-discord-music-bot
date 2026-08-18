@@ -2,8 +2,27 @@ services:
   discord-music-bot:
     build:
       context: .
+      dockerfile: Dockerfile
     container_name: discord-music-bot
     restart: unless-stopped
     env_file:
       - .env
+    depends_on:
+      - bgutil-provider
+    environment:
+      NODE_ENV: production
+      YTDLP_PATH: /usr/local/bin/yt-dlp
+    networks:
+      - music-bot
+
+  bgutil-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider:1.3.1
+    container_name: bgutil-provider
+    restart: unless-stopped
     init: true
+    networks:
+      - music-bot
+
+networks:
+  music-bot:
+    driver: bridge
